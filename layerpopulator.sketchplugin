@@ -44,6 +44,11 @@ var repaintLayer = function(layer) {
   layer.setName(name);
 };
 
+var dict = {
+  "Title": { fieldName: "title", prefix: "" },
+  "Price": { fieldName: "full_price", prefix: "$" },
+  "Image": { fieldName: "image", prefix: "" },
+};
 
 var layerByName = function(layers, name) {
   for (var i=0; i < layers.length(); i++) {
@@ -61,23 +66,27 @@ var updateLayersInSelection = function(selection, selectionNumber) {
     var layer = layerByName(layers, layerName)
     var fieldName = dict[layerName].fieldName;
 
-    if ([layer class] == "MSTextLayer") {
-      var str = String(dict[layerName].prefix) + String(data[selectionNumber][fieldName]);
-      [layer setStringValue: str];
-      repaintLayer(layer);
-    }
-    if ([layer class] == "MSShapeGroup") {
-      var fill = layer.style().fills().firstObject();
-      fill.setFillType(4); 
+    try {
+      if (layer.class() == "MSTextLayer") {
+        var str = String(dict[layerName].prefix) + String(data[selectionNumber][fieldName]);
+        [layer setStringValue: str];
+        repaintLayer(layer);
+      }
+      if (layer.class() == "MSShapeGroup") {
+        var fill = layer.style().fills().firstObject();
+        fill.setFillType(4); 
 
-      var path = "https://www.kogan.com/media/" + String(data[selectionNumber][fieldName]);
-      var imageURL = [NSURL URLWithString: path];
-      var image = [[NSImage alloc] initWithContentsOfURL:imageURL];
+        var path = "https://www.kogan.com/media/" + String(data[selectionNumber][fieldName]);
+        var imageURL = [NSURL URLWithString: path];
+        var image = [[NSImage alloc] initWithContentsOfURL:imageURL];
 
-      var coll = layer.style().fills().firstObject().documentData().images();              
-      [fill setPatternImage:image collection:coll]
-      layer.style().fills().firstObject().setPatternFillType(1);
-      repaintLayer(layer);
+        var coll = layer.style().fills().firstObject().documentData().images();              
+        [fill setPatternImage:image collection:coll]
+        layer.style().fills().firstObject().setPatternFillType(1);
+        repaintLayer(layer);
+      }
+    } catch (e) {
+      return;
     }
 
   });
@@ -87,7 +96,7 @@ var updateLayersInSelection = function(selection, selectionNumber) {
 var selections = context.selection
 for (var i = 0; i < [selections length]; i++) {
   var selection = selections[i]
-  if([selection class] === MSLayerGroup) {
+  if(selection.class() === MSLayerGroup) {
     updateLayersInSelection(selection, i);
   }
 }
