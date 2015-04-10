@@ -1,0 +1,93 @@
+// Insert JSON
+/*
+
+# JSONtoSketch
+
+@version: *0.0.1*
+@author: @psimyn
+
+*/
+
+function get_api_data() {
+  var url, parsed;
+  //var url = [[doc askForUserInput:"Insert url?" initialValue:""] stringValue];
+
+  // dummy url with phones
+  if (!url) url = 'https://www.kogan.com/api/v1/products/?department=phones&store=au&short_response=true';
+
+  var theAddress = url,
+      theUrl = NSURL.URLWithString_(theAddress);
+
+  // define the request
+  var theRequest = NSMutableURLRequest.requestWithURL_cachePolicy_timeoutInterval(theUrl, NSURLRequestReloadIgnoringLocalCacheData, 60);
+  theRequest.setHTTPMethod_("GET");
+
+  // get response data
+  var theResponse = null,
+      theResponseData = [NSURLConnection sendSynchronousRequest:theRequest returningResponse:nil error:nil];
+
+  if (theResponseData != nil) {
+    textResponse = [[NSString alloc] initWithData:theResponseData encoding:NSUTF8StringEncoding];
+    parsed = JSON.parse(textResponse).objects;
+  } else {
+     parsed = {};
+  }
+  return parsed;
+}
+
+/**
+ * Force redraw of a layer
+ */
+var repaintLayer = function(layer) {
+  var name = layer.name();
+  layer.setName('tempnametoforceupdate');
+  layer.setName(name);
+};
+
+
+var layerByName = function(layers, name) {
+  for (var i=0; i < layers.length(); i++) {
+    if (name == layers[i].name()) {
+      return layers[i];
+    }
+  }
+};
+
+var updateLayersInSelection = function(selection, selectionNumber) {
+  var data = get_api_data();
+
+  var layers = selection.layers().array();
+  for (var layerName in dict) {
+    var layer = layerByName(layers, layerName)
+    var fieldName = dict[layerName].fieldName;
+
+    if ([layer class] == "MSTextLayer") {
+      var str = String(dict[layerName].prefix) + String(data[selectionNumber][fieldName]);
+      [layer setStringValue: str];
+      repaintLayer(layer);
+    }
+    if ([layer class] == "MSShapeGroup") {
+      var fill = layer.style().fills().firstObject();
+      fill.setFillType(4); 
+
+      var path = "https://www.kogan.com/media/" + String(data[selectionNumber][fieldName]);
+      var imageURL = [NSURL URLWithString: path];
+      var image = [[NSImage alloc] initWithContentsOfURL:imageURL];
+
+      var coll = layer.style().fills().firstObject().documentData().images();              
+      [fill setPatternImage:image collection:coll]
+      layer.style().fills().firstObject().setPatternFillType(1);
+      repaintLayer(layer);
+    }
+
+  });
+}
+
+// get all selected groups and run
+var selections = context.selection
+for (var i = 0; i < [selections length]; i++) {
+  var selection = selections[i]
+  if([selection class] === MSLayerGroup) {
+    updateLayersInSelection(selection, i);
+  }
+}
